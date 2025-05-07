@@ -1,11 +1,15 @@
 import "./App.css";
 import SelfAssessments from "./components/self-assessments";
+import { PrimeReactProvider } from "primereact/api";
+import "primereact/resources/themes/lara-light-cyan/theme.css";
 
 function App() {
   return (
-    <div className="App">
-      <SelfAssessments />
-    </div>
+    <PrimeReactProvider>
+      <div className="App">
+        <SelfAssessments />
+      </div>
+    </PrimeReactProvider>
   );
 }
 
