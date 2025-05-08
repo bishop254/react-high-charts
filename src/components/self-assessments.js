@@ -70,8 +70,6 @@ function SelfAssessments() {
       });
     }
 
-    setSelectedData(filtered);
-
     setSaScheduled(
       filtered.filter(
         (item) =>
@@ -89,6 +87,8 @@ function SelfAssessments() {
     setSaNotStarted(
       filtered.filter((item) => item.assessmentStartDate == null)
     );
+
+    setSelectedData(filtered);
   }, [
     selectedCategory,
     selectedLocation,
