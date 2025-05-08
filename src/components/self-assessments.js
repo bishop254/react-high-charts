@@ -4,83 +4,23 @@ import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../App.css";
 import { Dropdown } from "primereact/dropdown";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
+import drilldown from "highcharts/modules/drilldown";
+import exporting from "highcharts/modules/exporting";
+import offlineExporting from "highcharts/modules/offline-exporting";
+import exportData from "highcharts/modules/export-data";
 
 function SelfAssessments() {
-  const options = {
-    chart: {
-      type: "column",
-    },
-    title: {
-      text: "SA Completed vs Scheduled vs Not started",
-    },
-    subtitle: {
-      text: "JSON Data",
-    },
-    navigation: {
-      buttonOptions: {
-        enabled: true,
-        align: "right",
-      },
-    },
-    xAxis: {
-      categories: ["Self Assessments"],
-      crosshair: true,
-      accessibility: {
-        description: "Self Assessments",
-      },
-    },
-    yAxis: {
-      min: 0,
-      title: {
-        text: "No. of Assessments",
-      },
-    },
-    tooltip: {
-      valueSuffix: " (Assessments)",
-    },
-    plotOptions: {
-      column: {
-        pointPadding: 0.2,
-        borderWidth: 0,
-      },
-    },
-    series: [
-      {
-        name: "SA Scheduled",
-        data: [
-          supplierAssessmentData
-            .filter((item) => item["assessmentStartDate"] !== null)
-            .filter((item) => item.supplierAssignmentSubmission?.type == 0)
-            .length,
-        ],
-      },
-      {
-        name: "SA Completed",
-        data: [
-          supplierAssessmentData
-            .filter((item) => item["assessmentStartDate"] !== null)
-            .filter((item) => item.supplierAssignmentSubmission?.type == 1)
-            .length,
-        ],
-      },
-      {
-        name: "SA Not Started",
-        data: [
-          supplierAssessmentData.filter(
-            (item) => item["assessmentStartDate"] == null
-          ).length,
-        ],
-      },
-    ],
-  };
-
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [selectedDates, setSelectedDates] = useState("");
+  const [selectedData, setSelectedData] = useState([]);
+  const [saScheduled, setSaScheduled] = useState([]);
+  const [saCompleted, setSaCompleted] = useState([]);
+  const [saNotStarted, setSaNotStarted] = useState([]);
 
   const allLocations = Array.from(
     new Set(
@@ -92,6 +32,150 @@ function SelfAssessments() {
       supplierAssessmentData.map((item) => item["vendor"]["supplierName"])
     )
   );
+
+  useEffect(() => {
+    setSelectedData(supplierAssessmentData);
+  }, [supplierAssessmentData]);
+
+  useEffect(() => {
+    let filtered = [...supplierAssessmentData];
+
+    if (selectedCategory) {
+      filtered = filtered.filter(
+        (item) => item.vendor?.supplierCategory == selectedCategory
+      );
+    }
+
+    if (selectedLocation) {
+      filtered = filtered.filter(
+        (item) =>
+          item.vendor?.supplierLocation.toLowerCase() ===
+          selectedLocation.toLowerCase()
+      );
+    }
+
+    if (selectedSupplier) {
+      filtered = filtered.filter(
+        (item) =>
+          item.vendor?.supplierName.toLowerCase() ===
+          selectedSupplier.toLowerCase()
+      );
+    }
+
+    if (selectedDates) {
+      const [start, end] = selectedDates;
+      filtered = filtered.filter((item) => {
+        const date = new Date(item.assessmentStartDate);
+        return date >= new Date(start) && date <= new Date(end);
+      });
+    }
+
+    setSelectedData(filtered);
+
+    setSaScheduled(
+      filtered.filter(
+        (item) =>
+          item.assessmentStartDate !== null &&
+          item.supplierAssignmentSubmission?.type === 0
+      )
+    );
+    setSaCompleted(
+      filtered.filter(
+        (item) =>
+          item.assessmentStartDate !== null &&
+          item.supplierAssignmentSubmission?.type === 1
+      )
+    );
+    setSaNotStarted(
+      filtered.filter((item) => item.assessmentStartDate == null)
+    );
+  }, [
+    selectedCategory,
+    selectedLocation,
+    selectedSupplier,
+    selectedDates,
+    supplierAssessmentData,
+  ]);
+
+  const options = {
+    chart: { type: "column" },
+    title: { text: "SA Drilldown" },
+    xAxis: { type: "category" },
+    legend: { enabled: true },
+    plotOptions: {
+      series: {
+        borderWidth: 0,
+        dataLabels: { enabled: true },
+      },
+    },
+    tooltip: {
+      headerFormat: "<span style='font-size:11px'>{series.name}</span><br>",
+      pointFormat:
+        "<span style='color:{point.color}'>{point.name}</span>: <b>{point.y}</b> assessments<br/>",
+    },
+    series: [
+      {
+        name: "Self Assessments",
+        colorByPoint: true,
+        data: [
+          {
+            name: "SA Scheduled",
+            y: saScheduled.length,
+            drilldown: "saScheduled",
+          },
+          {
+            name: "SA Completed",
+            y: saCompleted.length,
+            drilldown: "saCompleted",
+          },
+          {
+            name: "SA Not Started",
+            y: saNotStarted.length,
+            drilldown: "saNotStarted",
+          },
+        ],
+      },
+    ],
+    drilldown: {
+      series: [
+        {
+          id: "saScheduled",
+          data: saScheduled.map((item) => [
+            item.vendor?.supplierName || "Unknown",
+            1,
+          ]),
+        },
+        {
+          id: "saCompleted",
+          data: saCompleted.map((item) => [
+            item.vendor?.supplierName || "Unknown",
+            1,
+          ]),
+        },
+        {
+          id: "saNotStarted",
+          data: saNotStarted.map((item) => [
+            item.vendor?.supplierName || "Unknown",
+            1,
+          ]),
+        },
+      ],
+    },
+    exporting: {
+      enabled: true,
+      fallbackToExportServer: false,
+      sourceWidth: 800,
+      sourceHeight: 400,
+    },
+  };
+
+  const clearFilters = () => {
+    setSelectedCategory("");
+    setSelectedLocation("");
+    setSelectedSupplier("");
+    setSelectedDates("");
+    setSelectedData(supplierAssessmentData);
+  };
 
   return (
     <div>
@@ -142,6 +226,14 @@ function SelfAssessments() {
             selectionMode="range"
             readOnlyInput
             hideOnRangeSelection
+          />
+        </div>
+        <div>
+          <Button
+            onClick={() => clearFilters()}
+            severity="danger"
+            label="Clear"
+            className="m-1"
           />
         </div>
       </div>
