@@ -36,6 +36,10 @@
   flex-wrap: wrap;
 }
 
+.filterHeader > div {
+  display: flex;
+}
+
 .m-1 {
   margin: 0.3rem;
 }

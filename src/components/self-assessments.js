@@ -4,23 +4,27 @@ import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../App.css";
 import { Dropdown } from "primereact/dropdown";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
+import { MultiSelect } from "primereact/multiselect";
+
 import drilldown from "highcharts/modules/drilldown";
 import exporting from "highcharts/modules/exporting";
 import offlineExporting from "highcharts/modules/offline-exporting";
 import exportData from "highcharts/modules/export-data";
 
 function SelfAssessments() {
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState([]);
+  const [selectedSupplier, setSelectedSupplier] = useState([]);
   const [selectedDates, setSelectedDates] = useState("");
   const [selectedData, setSelectedData] = useState([]);
   const [saScheduled, setSaScheduled] = useState([]);
   const [saCompleted, setSaCompleted] = useState([]);
   const [saNotStarted, setSaNotStarted] = useState([]);
+
+  const chartRef = useRef(null);
 
   const allLocations = Array.from(
     new Set(
@@ -32,70 +36,6 @@ function SelfAssessments() {
       supplierAssessmentData.map((item) => item["vendor"]["supplierName"])
     )
   );
-
-  useEffect(() => {
-    setSelectedData(supplierAssessmentData);
-  }, [supplierAssessmentData]);
-
-  useEffect(() => {
-    let filtered = [...supplierAssessmentData];
-
-    if (selectedCategory) {
-      filtered = filtered.filter(
-        (item) => item.vendor?.supplierCategory == selectedCategory
-      );
-    }
-
-    if (selectedLocation) {
-      filtered = filtered.filter(
-        (item) =>
-          item.vendor?.supplierLocation.toLowerCase() ===
-          selectedLocation.toLowerCase()
-      );
-    }
-
-    if (selectedSupplier) {
-      filtered = filtered.filter(
-        (item) =>
-          item.vendor?.supplierName.toLowerCase() ===
-          selectedSupplier.toLowerCase()
-      );
-    }
-
-    if (selectedDates) {
-      const [start, end] = selectedDates;
-      filtered = filtered.filter((item) => {
-        const date = new Date(item.assessmentStartDate);
-        return date >= new Date(start) && date <= new Date(end);
-      });
-    }
-
-    setSaScheduled(
-      filtered.filter(
-        (item) =>
-          item.assessmentStartDate !== null &&
-          item.supplierAssignmentSubmission?.type === 0
-      )
-    );
-    setSaCompleted(
-      filtered.filter(
-        (item) =>
-          item.assessmentStartDate !== null &&
-          item.supplierAssignmentSubmission?.type === 1
-      )
-    );
-    setSaNotStarted(
-      filtered.filter((item) => item.assessmentStartDate == null)
-    );
-
-    setSelectedData(filtered);
-  }, [
-    selectedCategory,
-    selectedLocation,
-    selectedSupplier,
-    selectedDates,
-    supplierAssessmentData,
-  ]);
 
   const options = {
     chart: { type: "column" },
@@ -169,10 +109,75 @@ function SelfAssessments() {
     },
   };
 
+  useEffect(() => {
+    setSelectedData(supplierAssessmentData);
+  }, [supplierAssessmentData]);
+
+  useEffect(() => {
+    let filtered = [...supplierAssessmentData];
+
+    if (selectedCategory.length > 0) {
+      filtered = filtered.filter((item) =>
+        selectedCategory.includes(item.vendor?.supplierCategory)
+      );
+    }
+
+    if (selectedLocation.length > 0) {
+      filtered = filtered.filter((item) =>
+        selectedLocation.includes(item.vendor?.supplierLocation)
+      );
+    }
+
+    if (selectedSupplier.length > 0) {
+      filtered = filtered.filter((item) =>
+        selectedSupplier.includes(item.vendor?.supplierName)
+      );
+    }
+
+    if (selectedDates) {
+      const [start, end] = selectedDates;
+      filtered = filtered.filter((item) => {
+        const date = new Date(item.assessmentStartDate);
+        return date >= new Date(start) && date <= new Date(end);
+      });
+    }
+
+    setSaScheduled(
+      filtered.filter(
+        (item) =>
+          item.assessmentStartDate !== null &&
+          item.supplierAssignmentSubmission?.type === 0
+      )
+    );
+
+    setSaCompleted(
+      filtered.filter(
+        (item) =>
+          item.assessmentStartDate !== null &&
+          item.supplierAssignmentSubmission?.type === 1
+      )
+    );
+
+    setSaNotStarted(
+      filtered.filter((item) => item.assessmentStartDate == null)
+    );
+
+    setSelectedData(filtered);
+
+    setTimeout(() => {
+      const chart = chartRef.current;
+      if (chart && chart.drillUpButton) {
+        while (chart.drillUpButton) {
+          chart.drillUp();
+        }
+      }
+    }, 0);
+  }, [selectedCategory, selectedLocation, selectedSupplier, selectedDates]);
+
   const clearFilters = () => {
-    setSelectedCategory("");
-    setSelectedLocation("");
-    setSelectedSupplier("");
+    setSelectedCategory([]);
+    setSelectedLocation([]);
+    setSelectedSupplier([]);
     setSelectedDates("");
     setSelectedData(supplierAssessmentData);
   };
@@ -182,39 +187,44 @@ function SelfAssessments() {
       <div className="filterHeader">
         <div>
           <Button label="Category" className="m-1" />
-          <Dropdown
-            className="m-1"
+
+          <MultiSelect
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.value)}
             options={categoryData}
             optionLabel="name"
+            display="chip"
             placeholder="Select a Category"
-            checkmark={true}
-            highlightOnSelect={false}
+            maxSelectedLabels={8}
+            className="m-1"
           />
         </div>
         <div>
           <Button label="Location" className="m-1" />
-          <Dropdown
+
+          <MultiSelect
             className="m-1"
             value={selectedLocation}
             onChange={(e) => setSelectedLocation(e.value)}
             options={allLocations}
             placeholder="Select a Location"
-            checkmark={true}
-            highlightOnSelect={false}
+            optionLabel=""
+            display="chip"
+            maxSelectedLabels={8}
           />
         </div>
         <div>
           <Button label="Supplier" className="m-1" />
-          <Dropdown
+
+          <MultiSelect
             className="m-1"
             value={selectedSupplier}
             onChange={(e) => setSelectedSupplier(e.value)}
             options={allSuppliers}
             placeholder="Select a Supplier"
-            checkmark={true}
-            highlightOnSelect={false}
+            optionLabel=""
+            display="chip"
+            maxSelectedLabels={8}
           />
         </div>
         <div>
@@ -238,7 +248,13 @@ function SelfAssessments() {
         </div>
       </div>
       <hr />
-      <HighchartsReact highcharts={Highcharts} options={options} />
+      <HighchartsReact
+        highcharts={Highcharts}
+        options={options}
+        callback={(chart) => {
+          chartRef.current = chart;
+        }}
+      />
     </div>
   );
 }
