@@ -1,6 +1,6 @@
 import supplierAssessmentData from "../data/supplierAssignmentWithAuditorandActions.json";
 import categoryData from "../data/categories.json";
-import Highcharts from "highcharts";
+import Highcharts, { chart } from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../App.css";
 import { Dropdown } from "primereact/dropdown";
@@ -114,6 +114,9 @@ function SelfAssessments() {
   }, [supplierAssessmentData]);
 
   useEffect(() => {
+    const chart = chartRef.current;
+    chart.drillUp();
+
     let filtered = [...supplierAssessmentData];
 
     if (selectedCategory.length > 0) {
@@ -163,15 +166,6 @@ function SelfAssessments() {
     );
 
     setSelectedData(filtered);
-
-    setTimeout(() => {
-      const chart = chartRef.current;
-      if (chart && chart.drillUpButton) {
-        while (chart.drillUpButton) {
-          chart.drillUp();
-        }
-      }
-    }, 0);
   }, [selectedCategory, selectedLocation, selectedSupplier, selectedDates]);
 
   const clearFilters = () => {
