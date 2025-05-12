@@ -30,6 +30,9 @@ function SelfAssessments() {
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
 
+  const [chartType, setChartType] = useState("column"); // or "line", "area", etc.
+  const [viewMode, setViewMode] = useState("chart"); // or "table"
+
   const chartRef = useRef(null);
 
   const allLocations = Array.from(
@@ -50,7 +53,11 @@ function SelfAssessments() {
   };
 
   const options = {
-    chart: { type: "column", backgroundColor: "#FFFFFF" },
+    chart: {
+      type: chartType,
+      backgroundColor: "#FFFFFF",
+      style: { fontFamily: "Inter, Roboto, sans-serif" },
+    },
     title: {
       text: "SA Drilldown",
       style: { color: navigosPalette.neutral[0] }, // #333333
@@ -73,6 +80,7 @@ function SelfAssessments() {
     plotOptions: {
       series: {
         borderWidth: 0,
+        animation: false,
         dataLabels: {
           enabled: true,
           style: {
@@ -136,88 +144,14 @@ function SelfAssessments() {
     },
     accessibility: {
       enabled: true,
-      description: "Bar chart showing SA statuses with drilldown by vendor.",
+      keyboardNavigation: {
+        enabled: true,
+      },
       point: {
         valueDescriptionFormat: "{index}. {point.name}, {point.y} assessments.",
       },
     },
   };
-
-  // const options = {
-  //   chart: {
-  //     type: "column",
-  //     backgroundColor: "#FFFFFF",
-  //     style: {
-  //       fontFamily: "Inter, Roboto, sans-serif",
-  //     },
-  //   },
-  //   title: {
-  //     text: "SA Drilldown",
-  //     style: {
-  //       color: navigosPalette.neutral[0],
-  //       fontSize: "20px",
-  //       fontWeight: "bold",
-  //     },
-  //   },
-  //   xAxis: {
-  //     type: "category",
-  //     labels: {
-  //       style: {
-  //         color: navigosPalette.neutral[0],
-  //         fontSize: "14px",
-  //         fontFamily: "Inter, Roboto, sans-serif",
-  //       },
-  //     },
-  //   },
-  //   yAxis: {
-  //     title: {
-  //       text: "Assessments",
-  //       style: {
-  //         fontSize: "14px",
-  //         fontFamily: "Inter, Roboto, sans-serif",
-  //       },
-  //     },
-  //     labels: {
-  //       style: {
-  //         color: navigosPalette.neutral[0],
-  //         fontSize: "14px",
-  //         fontFamily: "Inter, Roboto, sans-serif",
-  //       },
-  //     },
-  //     gridLineColor: navigosPalette.neutral[3],
-  //   },
-  //   tooltip: {
-  //     backgroundColor: "#FFFFFF",
-  //     borderColor: navigosPalette.primary,
-  //     style: {
-  //       color: navigosPalette.neutral[0],
-  //       fontSize: "12px",
-  //       fontFamily: "Inter, Roboto, sans-serif",
-  //     },
-  //   },
-  //   legend: {
-  //     itemStyle: {
-  //       color: navigosPalette.neutral[0],
-  //       fontFamily: "Inter, Roboto, sans-serif",
-  //       fontSize: "12px",
-  //       fontStyle: "italic",
-  //     },
-  //   },
-  //   plotOptions: {
-  //     series: {
-  //       borderWidth: 0,
-  //       dataLabels: {
-  //         enabled: true,
-  //         style: {
-  //           color: "#333333",
-  //           textOutline: "none",
-  //           fontSize: "12px",
-  //           fontFamily: "Inter, Roboto, sans-serif",
-  //         },
-  //       },
-  //     },
-  //   },
-  // };
 
   useEffect(() => {
     setSelectedData(supplierAssessmentData);
@@ -285,6 +219,31 @@ function SelfAssessments() {
   return (
     <div className="chartDiv">
       <div className="filterHeader">
+        <Button
+          label="Chart View"
+          icon="pi pi-chart-bar"
+          onClick={() => setViewMode("chart")}
+          className={viewMode === "chart" ? "p-button-info" : ""}
+        />
+        <Button
+          label="Table View"
+          icon="pi pi-table"
+          onClick={() => setViewMode("table")}
+          className={viewMode === "table" ? "p-button-info" : ""}
+        />
+        <Dropdown
+          value={chartType}
+          options={[
+            { label: "Column", value: "column" },
+            { label: "Line", value: "line" },
+            { label: "Bar", value: "bar" },
+          ]}
+          onChange={(e) => setChartType(e.value)}
+          placeholder="Select Chart Type"
+        />
+      </div>
+
+      <div className="filterHeader">
         <div>
           <Button label="Category" className="m-1" />
 
@@ -348,13 +307,60 @@ function SelfAssessments() {
         </div>
       </div>
       <hr />
-      <HighchartsReact
-        highcharts={Highcharts}
-        options={options}
-        callback={(chart) => {
-          chartRef.current = chart;
-        }}
-      />
+      {viewMode === "chart" ? (
+        <HighchartsReact
+          highcharts={Highcharts}
+          options={options}
+          callback={(chart) => {
+            chartRef.current = chart;
+          }}
+        />
+      ) : (
+        <DataTable value={selectedData} paginator rows={10}>
+          <Column field="vendor.supplierName" header="Supplier" />
+          <Column field="vendor.supplierLocation" header="Location" />
+          <Column field="vendor.supplierCategory" header="Category" />
+          <Column field="assessmentStartDate" header="Start Date" />
+          <Column
+            header="Status"
+            body={(rowData) =>
+              rowData.assessmentStartDate == null
+                ? "Not Started"
+                : rowData.supplierAssignmentSubmission?.type === 0
+                ? "Scheduled"
+                : "Completed"
+            }
+          />
+        </DataTable>
+      )}
+
+      <div className="filterHeader">
+        <div>
+          <strong>Caption:</strong> Self Assessment summary (editable)
+        </div>
+        <div>
+          <em>Data source: Internal ESG Reports</em>
+        </div>
+        <div>
+          <small>
+            Filtered by:{" "}
+            {[
+              selectedCategory.length &&
+                `Category: ${selectedCategory.join(", ")}`,
+              selectedLocation.length &&
+                `Location: ${selectedLocation.join(", ")}`,
+              selectedSupplier.length &&
+                `Supplier: ${selectedSupplier.join(", ")}`,
+              selectedDates &&
+                `Dates: ${selectedDates
+                  .map((d) => d?.toLocaleDateString())
+                  .join(" - ")}`,
+            ]
+              .filter(Boolean)
+              .join(" | ")}
+          </small>
+        </div>
+      </div>
 
       <Dialog
         header={modalTitle}
