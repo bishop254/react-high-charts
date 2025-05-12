@@ -8,6 +8,9 @@ import { useEffect, useState, useRef } from "react";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { MultiSelect } from "primereact/multiselect";
+import { Dialog } from "primereact/dialog";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
 
 import drilldown from "highcharts/modules/drilldown";
 import exporting from "highcharts/modules/exporting";
@@ -22,7 +25,10 @@ function SelfAssessments() {
   const [selectedData, setSelectedData] = useState([]);
   const [saScheduled, setSaScheduled] = useState([]);
   const [saCompleted, setSaCompleted] = useState([]);
-  const [saNotStarted, setSaNotStarted] = useState([]);
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalData, setModalData] = useState([]);
+  const [modalTitle, setModalTitle] = useState("");
 
   const chartRef = useRef(null);
 
@@ -37,22 +43,73 @@ function SelfAssessments() {
     )
   );
 
+  const navigosPalette = {
+    primary: "#2F80ED",
+    secondary: ["#56CCF2", "#27AE60", "#F2994A", "#EB5757"],
+    neutral: ["#333333", "#828282", "#BDBDBD", "#E0E0E0", "#F2F2F2"],
+  };
+
   const options = {
-    chart: { type: "column" },
-    title: { text: "SA Drilldown" },
-    xAxis: { type: "category" },
-    legend: { enabled: true },
+    chart: { type: "column", backgroundColor: "#FFFFFF" },
+    title: {
+      text: "SA Drilldown",
+      style: { color: navigosPalette.neutral[0] }, // #333333
+    },
+    xAxis: {
+      type: "category",
+      labels: {
+        style: { color: navigosPalette.neutral[0] }, // #333333
+      },
+    },
+    yAxis: {
+      title: { text: "Assessments" },
+      labels: { style: { color: navigosPalette.neutral[0] } }, // #333333
+      gridLineColor: navigosPalette.neutral[3], // #E0E0E0
+    },
+    legend: {
+      enabled: true,
+      itemStyle: { color: navigosPalette.neutral[0] }, // #333333
+    },
     plotOptions: {
       series: {
         borderWidth: 0,
-        dataLabels: { enabled: true },
+        dataLabels: {
+          enabled: true,
+          style: {
+            color: "#333333",
+            textOutline: "none",
+          },
+        },
+        point: {
+          events: {
+            click: function () {
+              const pointName = this.name;
+              let dataToShow = [];
+
+              if (pointName === "SA Scheduled") dataToShow = saScheduled;
+              else if (pointName === "SA Completed") dataToShow = saCompleted;
+
+              setModalTitle(pointName);
+              setModalData(dataToShow);
+              setIsModalVisible(true);
+            },
+          },
+        },
       },
     },
+
+    colors: ["#2F80ED", "#56CCF2", "#27AE60"],
     tooltip: {
+      backgroundColor: "#FFFFFF",
+      borderColor: navigosPalette.primary,
+      style: {
+        color: navigosPalette.neutral[0],
+      },
       headerFormat: "<span style='font-size:11px'>{series.name}</span><br>",
       pointFormat:
         "<span style='color:{point.color}'>{point.name}</span>: <b>{point.y}</b> assessments<br/>",
     },
+    colors: [navigosPalette.primary, ...navigosPalette.secondary],
     series: [
       {
         name: "Self Assessments",
@@ -68,46 +125,99 @@ function SelfAssessments() {
             y: saCompleted.length,
             drilldown: "saCompleted",
           },
-          {
-            name: "SA Not Started",
-            y: saNotStarted.length,
-            drilldown: "saNotStarted",
-          },
         ],
       },
     ],
-    drilldown: {
-      series: [
-        {
-          id: "saScheduled",
-          data: saScheduled.map((item) => [
-            item.vendor?.supplierName || "Unknown",
-            1,
-          ]),
-        },
-        {
-          id: "saCompleted",
-          data: saCompleted.map((item) => [
-            item.vendor?.supplierName || "Unknown",
-            1,
-          ]),
-        },
-        {
-          id: "saNotStarted",
-          data: saNotStarted.map((item) => [
-            item.vendor?.supplierName || "Unknown",
-            1,
-          ]),
-        },
-      ],
-    },
     exporting: {
       enabled: true,
       fallbackToExportServer: false,
       sourceWidth: 800,
       sourceHeight: 400,
     },
+    accessibility: {
+      enabled: true,
+      description: "Bar chart showing SA statuses with drilldown by vendor.",
+      point: {
+        valueDescriptionFormat: "{index}. {point.name}, {point.y} assessments.",
+      },
+    },
   };
+
+  // const options = {
+  //   chart: {
+  //     type: "column",
+  //     backgroundColor: "#FFFFFF",
+  //     style: {
+  //       fontFamily: "Inter, Roboto, sans-serif",
+  //     },
+  //   },
+  //   title: {
+  //     text: "SA Drilldown",
+  //     style: {
+  //       color: navigosPalette.neutral[0],
+  //       fontSize: "20px",
+  //       fontWeight: "bold",
+  //     },
+  //   },
+  //   xAxis: {
+  //     type: "category",
+  //     labels: {
+  //       style: {
+  //         color: navigosPalette.neutral[0],
+  //         fontSize: "14px",
+  //         fontFamily: "Inter, Roboto, sans-serif",
+  //       },
+  //     },
+  //   },
+  //   yAxis: {
+  //     title: {
+  //       text: "Assessments",
+  //       style: {
+  //         fontSize: "14px",
+  //         fontFamily: "Inter, Roboto, sans-serif",
+  //       },
+  //     },
+  //     labels: {
+  //       style: {
+  //         color: navigosPalette.neutral[0],
+  //         fontSize: "14px",
+  //         fontFamily: "Inter, Roboto, sans-serif",
+  //       },
+  //     },
+  //     gridLineColor: navigosPalette.neutral[3],
+  //   },
+  //   tooltip: {
+  //     backgroundColor: "#FFFFFF",
+  //     borderColor: navigosPalette.primary,
+  //     style: {
+  //       color: navigosPalette.neutral[0],
+  //       fontSize: "12px",
+  //       fontFamily: "Inter, Roboto, sans-serif",
+  //     },
+  //   },
+  //   legend: {
+  //     itemStyle: {
+  //       color: navigosPalette.neutral[0],
+  //       fontFamily: "Inter, Roboto, sans-serif",
+  //       fontSize: "12px",
+  //       fontStyle: "italic",
+  //     },
+  //   },
+  //   plotOptions: {
+  //     series: {
+  //       borderWidth: 0,
+  //       dataLabels: {
+  //         enabled: true,
+  //         style: {
+  //           color: "#333333",
+  //           textOutline: "none",
+  //           fontSize: "12px",
+  //           fontFamily: "Inter, Roboto, sans-serif",
+  //         },
+  //       },
+  //     },
+  //   },
+  // };
 
   useEffect(() => {
     setSelectedData(supplierAssessmentData);
@@ -161,10 +271,6 @@ function SelfAssessments() {
       )
     );
 
-    setSaNotStarted(
-      filtered.filter((item) => item.assessmentStartDate == null)
-    );
-
     setSelectedData(filtered);
   }, [selectedCategory, selectedLocation, selectedSupplier, selectedDates]);
 
@@ -177,7 +283,7 @@ function SelfAssessments() {
   };
 
   return (
-    <div>
+    <div className="chartDiv">
       <div className="filterHeader">
         <div>
           <Button label="Category" className="m-1" />
@@ -249,6 +355,37 @@ function SelfAssessments() {
           chartRef.current = chart;
         }}
       />
+
+      <Dialog
+        header={modalTitle}
+        visible={isModalVisible}
+        style={{ width: "80vw" }}
+        modal
+        onHide={() => setIsModalVisible(false)}
+      >
+        <DataTable
+          value={modalData}
+          paginator
+          rows={10}
+          stripedRows
+          responsiveLayout="scroll"
+        >
+          <Column field="vendor.supplierName" header="Supplier" />
+          <Column field="vendor.supplierLocation" header="Location" />
+          <Column field="vendor.supplierCategory" header="Category" />
+          <Column field="assessmentStartDate" header="Start Date" />
+          <Column
+            header="Status"
+            body={(rowData) =>
+              rowData.assessmentStartDate == null
+                ? "Not Started"
+                : rowData.supplierAssignmentSubmission?.type === 0
+                ? "Scheduled"
+                : "Completed"
+            }
+          />
+        </DataTable>
+      </Dialog>
     </div>
   );
 }
