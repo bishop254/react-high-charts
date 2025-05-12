@@ -17,14 +17,15 @@ import exporting from "highcharts/modules/exporting";
 import offlineExporting from "highcharts/modules/offline-exporting";
 import exportData from "highcharts/modules/export-data";
 
-function SelfAssessments() {
+function Audits() {
   const [selectedCategory, setSelectedCategory] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState([]);
   const [selectedDates, setSelectedDates] = useState("");
   const [selectedData, setSelectedData] = useState([]);
-  const [saScheduled, setSaScheduled] = useState([]);
-  const [saCompleted, setSaCompleted] = useState([]);
+  const [auditScheduled, setAuditScheduled] = useState([]);
+  const [auditCompleted, setAuditCompleted] = useState([]);
+  const [auditReleased, setAuditReleased] = useState([]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalData, setModalData] = useState([]);
@@ -59,7 +60,7 @@ function SelfAssessments() {
       style: { fontFamily: "Inter, Roboto, sans-serif" },
     },
     title: {
-      text: "SA Drilldown",
+      text: "Audits Drilldown",
       style: { color: navigosPalette.neutral[0] },
     },
     xAxis: {
@@ -69,7 +70,7 @@ function SelfAssessments() {
       },
     },
     yAxis: {
-      title: { text: "Assessments" },
+      title: { text: "Audits" },
       labels: { style: { color: navigosPalette.neutral[0] } },
       gridLineColor: navigosPalette.neutral[3],
     },
@@ -94,8 +95,11 @@ function SelfAssessments() {
               const pointName = this.name;
               let dataToShow = [];
 
-              if (pointName === "SA Scheduled") dataToShow = saScheduled;
-              else if (pointName === "SA Completed") dataToShow = saCompleted;
+              if (pointName === "Audits Scheduled") dataToShow = auditScheduled;
+              else if (pointName === "Audits Completed")
+                dataToShow = auditCompleted;
+              else if (pointName === "Audits Released")
+                dataToShow = auditReleased;
 
               setModalTitle(pointName);
               setModalData(dataToShow);
@@ -118,18 +122,20 @@ function SelfAssessments() {
     colors: [navigosPalette.primary, ...navigosPalette.secondary],
     series: [
       {
-        name: "Self Assessments",
+        name: "Suppliers Audits",
         colorByPoint: true,
         data: [
           {
-            name: "SA Scheduled",
-            y: saScheduled.length,
-            drilldown: "saScheduled",
+            name: "Audits Scheduled",
+            y: auditScheduled.length,
           },
           {
-            name: "SA Completed",
-            y: saCompleted.length,
-            drilldown: "saCompleted",
+            name: "Audits Completed",
+            y: auditCompleted.length,
+          },
+          {
+            name: "Audits Released",
+            y: auditReleased.length,
           },
         ],
       },
@@ -179,24 +185,32 @@ function SelfAssessments() {
     if (selectedDates) {
       const [start, end] = selectedDates;
       filtered = filtered.filter((item) => {
-        const date = new Date(item.assessmentStartDate);
+        const date = new Date(item.auditStartDate);
         return date >= new Date(start) && date <= new Date(end);
       });
     }
 
-    setSaScheduled(
+    setAuditScheduled(
       filtered.filter(
         (item) =>
-          item.assessmentStartDate !== null &&
-          item.supplierAssignmentSubmission?.type === 0
+          item.auditStartDate !== null &&
+          item.auditorAssignmentSubmission?.type === 0
       )
     );
 
-    setSaCompleted(
+    setAuditCompleted(
       filtered.filter(
         (item) =>
-          item.assessmentStartDate !== null &&
-          item.supplierAssignmentSubmission?.type === 1
+          item.auditStartDate !== null &&
+          item.auditorAssignmentSubmission?.type === 1
+      )
+    );
+
+    setAuditReleased(
+      filtered.filter(
+        (item) =>
+          item.auditStartDate !== null &&
+          item.auditorAssignmentSubmission?.type === 2
       )
     );
 
@@ -306,7 +320,9 @@ function SelfAssessments() {
           />
         </div>
       </div>
+
       <hr />
+
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={options} />
       ) : (
@@ -314,15 +330,17 @@ function SelfAssessments() {
           <Column field="vendor.supplierName" header="Supplier" />
           <Column field="vendor.supplierLocation" header="Location" />
           <Column field="vendor.supplierCategory" header="Category" />
-          <Column field="assessmentStartDate" header="Assessment Start Date" />
+          <Column field="auditStartDate" header="Audit Start Date" />
           <Column
             header="Status"
             body={(rowData) =>
-              rowData.assessmentStartDate == null
+              rowData.auditStartDate == null
                 ? "Not Started"
-                : rowData.supplierAssignmentSubmission?.type === 0
+                : rowData.auditorAssignmentSubmission?.type === 0
                 ? "Scheduled"
-                : "Completed"
+                : rowData.auditorAssignmentSubmission?.type === 1
+                ? "Completed"
+                : "Released"
             }
           />
         </DataTable>
@@ -330,7 +348,7 @@ function SelfAssessments() {
 
       <div>
         <div>
-          <strong>Caption:</strong> Self Assessment summary
+          <strong>Caption:</strong> Audit summary
         </div>
         <div className="filterHeader">
           <div>
@@ -375,15 +393,17 @@ function SelfAssessments() {
           <Column field="vendor.supplierName" header="Supplier" />
           <Column field="vendor.supplierLocation" header="Location" />
           <Column field="vendor.supplierCategory" header="Category" />
-          <Column field="assessmentStartDate" header="Assessment Start Date" />
+          <Column field="auditStartDate" header="Audit Start Date" />
           <Column
             header="Status"
             body={(rowData) =>
-              rowData.assessmentStartDate == null
+              rowData.auditStartDate == null
                 ? "Not Started"
-                : rowData.supplierAssignmentSubmission?.type === 0
+                : rowData.auditorAssignmentSubmission?.type === 0
                 ? "Scheduled"
-                : "Completed"
+                : rowData.auditorAssignmentSubmission?.type === 1
+                ? "Completed"
+                : "Released"
             }
           />
         </DataTable>
@@ -392,4 +412,4 @@ function SelfAssessments() {
   );
 }
 
-export default SelfAssessments;
+export default Audits;

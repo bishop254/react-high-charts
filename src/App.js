@@ -1,4 +1,5 @@
 import "./App.css";
+import Audits from "./components/audits";
 import SelfAssessments from "./components/self-assessments";
 import { PrimeReactProvider } from "primereact/api";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
@@ -8,6 +9,7 @@ function App() {
     <PrimeReactProvider>
       <div className="App">
         <SelfAssessments />
+        <Audits />
       </div>
     </PrimeReactProvider>
   );
