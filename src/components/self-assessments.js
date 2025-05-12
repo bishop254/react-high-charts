@@ -30,8 +30,8 @@ function SelfAssessments() {
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
 
-  const [chartType, setChartType] = useState("column"); // or "line", "area", etc.
-  const [viewMode, setViewMode] = useState("chart"); // or "table"
+  const [chartType, setChartType] = useState("column");
+  const [viewMode, setViewMode] = useState("chart");
 
   const chartRef = useRef(null);
 
@@ -60,22 +60,22 @@ function SelfAssessments() {
     },
     title: {
       text: "SA Drilldown",
-      style: { color: navigosPalette.neutral[0] }, // #333333
+      style: { color: navigosPalette.neutral[0] },
     },
     xAxis: {
       type: "category",
       labels: {
-        style: { color: navigosPalette.neutral[0] }, // #333333
+        style: { color: navigosPalette.neutral[0] },
       },
     },
     yAxis: {
       title: { text: "Assessments" },
-      labels: { style: { color: navigosPalette.neutral[0] } }, // #333333
-      gridLineColor: navigosPalette.neutral[3], // #E0E0E0
+      labels: { style: { color: navigosPalette.neutral[0] } },
+      gridLineColor: navigosPalette.neutral[3],
     },
     legend: {
       enabled: true,
-      itemStyle: { color: navigosPalette.neutral[0] }, // #333333
+      itemStyle: { color: navigosPalette.neutral[0] },
     },
     plotOptions: {
       series: {
@@ -105,8 +105,6 @@ function SelfAssessments() {
         },
       },
     },
-
-    colors: ["#2F80ED", "#56CCF2", "#27AE60"],
     tooltip: {
       backgroundColor: "#FFFFFF",
       borderColor: navigosPalette.primary,
@@ -218,18 +216,18 @@ function SelfAssessments() {
 
   return (
     <div className="chartDiv">
-      <div className="filterHeader">
-        <Button
-          label="Chart View"
-          icon="pi pi-chart-bar"
-          onClick={() => setViewMode("chart")}
-          className={viewMode === "chart" ? "p-button-info" : ""}
-        />
+      <div className="filterTypeHeader">
         <Button
           label="Table View"
           icon="pi pi-table"
           onClick={() => setViewMode("table")}
-          className={viewMode === "table" ? "p-button-info" : ""}
+          className={viewMode === "table" ? "p-button-info" : " m-1"}
+        />
+        <Button
+          label="Chart View"
+          icon="pi pi-chart-bar"
+          onClick={() => setViewMode("chart")}
+          className={viewMode === "chart" ? "p-button-info" : " m-1"}
         />
         <Dropdown
           value={chartType}
@@ -237,9 +235,14 @@ function SelfAssessments() {
             { label: "Column", value: "column" },
             { label: "Line", value: "line" },
             { label: "Bar", value: "bar" },
+            { label: "Pie", value: "pie" },
           ]}
-          onChange={(e) => setChartType(e.value)}
+          onChange={(e) => {
+            setChartType(e.value);
+            setViewMode("chart");
+          }}
           placeholder="Select Chart Type"
+          className="m-1"
         />
       </div>
 
@@ -334,31 +337,33 @@ function SelfAssessments() {
         </DataTable>
       )}
 
-      <div className="filterHeader">
+      <div>
         <div>
-          <strong>Caption:</strong> Self Assessment summary (editable)
+          <strong>Caption:</strong> Self Assessment summary
         </div>
-        <div>
-          <em>Data source: Internal ESG Reports</em>
-        </div>
-        <div>
-          <small>
-            Filtered by:{" "}
-            {[
-              selectedCategory.length &&
-                `Category: ${selectedCategory.join(", ")}`,
-              selectedLocation.length &&
-                `Location: ${selectedLocation.join(", ")}`,
-              selectedSupplier.length &&
-                `Supplier: ${selectedSupplier.join(", ")}`,
-              selectedDates &&
-                `Dates: ${selectedDates
-                  .map((d) => d?.toLocaleDateString())
-                  .join(" - ")}`,
-            ]
-              .filter(Boolean)
-              .join(" | ")}
-          </small>
+        <div className="filterHeader">
+          <div>
+            <em>Data source: Internal ESG Reports</em>
+          </div>
+          <div>
+            <em>
+              Filtered by:{" "}
+              {[
+                selectedCategory.length &&
+                  `Category: ${selectedCategory.join(", ")}`,
+                selectedLocation.length &&
+                  `Location: ${selectedLocation.join(", ")}`,
+                selectedSupplier.length &&
+                  `Supplier: ${selectedSupplier.join(", ")}`,
+                selectedDates &&
+                  `Dates: ${selectedDates
+                    .map((d) => d?.toLocaleDateString())
+                    .join(" - ")}`,
+              ]
+                .filter(Boolean)
+                .join(" | ")}
+            </em>
+          </div>
         </div>
       </div>
 
