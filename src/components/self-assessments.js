@@ -245,8 +245,7 @@ function SelfAssessments() {
 
       <div className="filterHeader">
         <div>
-          <Button label="Category" className="m-1" />
-
+          <Button label="Category" className="p-button-primary m-1" />
           <MultiSelect
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.value)}
