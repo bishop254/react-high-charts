@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts";
-import drilldown from "highcharts/modules/drilldown";
-import exporting from "highcharts/modules/exporting";
-import offlineExporting from "highcharts/modules/offline-exporting";
-import exportData from "highcharts/modules/export-data";
+import "../App.css";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
@@ -12,7 +9,8 @@ import { MultiSelect } from "primereact/multiselect";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Dialog } from "primereact/dialog";
-import "../App.css";
+
+// Initialize Highcharts exporting
 
 const AssessmentDashboard = ({
   data,
@@ -25,91 +23,98 @@ const AssessmentDashboard = ({
   caption,
   sourceText,
 }) => {
+  // filter states
   const [selectedCategory, setSelectedCategory] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState([]);
   const [selectedDates, setSelectedDates] = useState(null);
 
+  // data buckets
   const [filteredData, setFilteredData] = useState([]);
   const [buckets, setBuckets] = useState({});
 
+  // UI state
   const [chartType, setChartType] = useState("column");
   const [viewMode, setViewMode] = useState("chart");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
 
-  const allLocations = Array.from(
-    new Set(data.map((i) => i.vendor?.supplierLocation))
+  // derive unique filter options
+  const allLocations = React.useMemo(
+    () => [...new Set(data.map((i) => i.vendor?.supplierLocation))],
+    [data]
   );
-  const allSuppliers = Array.from(
-    new Set(data.map((i) => i.vendor?.supplierName))
+  const allSuppliers = React.useMemo(
+    () => [...new Set(data.map((i) => i.vendor?.supplierName))],
+    [data]
   );
 
-  const chartOptions = {
-    chart: {
-      type: chartType,
-      backgroundColor: "#FFF",
-      style: { fontFamily: "Inter, Roboto, sans-serif" },
-    },
-    title: { text: title, style: { color: "#333" } },
-    xAxis: { type: "category", labels: { style: { color: "#333" } } },
-    yAxis: { title: { text: "Count" }, labels: { style: { color: "#333" } } },
-    legend: { enabled: true, itemStyle: { color: "#333" } },
-    plotOptions: {
-      series: {
-        borderWidth: 0,
-        dataLabels: { enabled: true, style: { textOutline: "none" } },
-        point: {
-          events: {
-            click() {
-              const sel = this.name;
-              setModalTitle(sel);
-              setModalData(buckets[sel] || []);
-              setIsModalVisible(true);
+  // build chart options
+  const chartOptions = React.useMemo(
+    () => ({
+      chart: { type: chartType, backgroundColor: "#FFF" },
+      title: { text: title, style: { color: "#333" } },
+      xAxis: { type: "category", labels: { style: { color: "#333" } } },
+      yAxis: { title: { text: "Count" }, labels: { style: { color: "#333" } } },
+      plotOptions: {
+        series: {
+          borderWidth: 0,
+          dataLabels: { enabled: true, style: { textOutline: "none" } },
+          point: {
+            events: {
+              click() {
+                setModalTitle(this.name);
+                setModalData(buckets[this.name] || []);
+                setIsModalVisible(true);
+              },
             },
           },
         },
       },
-    },
-    tooltip: {
-      headerFormat: "<b>{series.name}</b><br>",
-      pointFormat: "{point.name}: <b>{point.y}</b>",
-    },
-    colors: ["#2F80ED", "#56CCF2", "#27AE60", "#F2994A", "#EB5757"],
-    series: [
-      {
-        name: title,
-        colorByPoint: true,
-        data: statuses.map((s) => ({
-          name: s.label,
-          y: (buckets[s.label] || []).length,
-        })),
+      tooltip: {
+        headerFormat: "<b>{series.name}</b><br>",
+        pointFormat: "{point.name}: <b>{point.y}</b>",
       },
-    ],
-    exporting: {
-      enabled: true,
-      fallbackToExportServer: false,
-      sourceWidth: 800,
-      sourceHeight: 400,
-    },
-    accessibility: { enabled: true, keyboardNavigation: { enabled: true } },
-  };
+      series: [
+        {
+          name: title,
+          colorByPoint: true,
+          data: statuses.map((s) => ({
+            name: s.label,
+            y: (buckets[s.label] || []).length,
+          })),
+        },
+      ],
+      exporting: {
+        enabled: true,
+        fallbackToExportServer: false,
+        sourceWidth: 800,
+        sourceHeight: 400,
+      },
+    }),
+    [chartType, title, statuses, buckets]
+  );
 
+  // filtering and bucketing
   useEffect(() => {
     let tmp = [...data];
+    // category filter
     if (selectedCategory.length)
       tmp = tmp.filter((d) =>
         selectedCategory.includes(d.vendor?.supplierCategory)
       );
+    // location filter
     if (selectedLocation.length)
       tmp = tmp.filter((d) =>
         selectedLocation.includes(d.vendor?.supplierLocation)
       );
+    // supplier filter
     if (selectedSupplier.length)
       tmp = tmp.filter((d) =>
         selectedSupplier.includes(d.vendor?.supplierName)
       );
+    // date range filter
     if (selectedDates) {
       const [start, end] = selectedDates;
       tmp = tmp.filter((d) => {
@@ -119,16 +124,35 @@ const AssessmentDashboard = ({
     }
     setFilteredData(tmp);
 
-    const b = {};
-    statuses.forEach((s) => (b[s.label] = []));
+    // initialize buckets
+    const b = statuses.reduce((acc, s) => ({ ...acc, [s.label]: [] }), {});
+    // populate buckets
     tmp.forEach((item) => {
-      const sub = item[submissionField]?.type;
-      const status = statuses.find((s) => s.type === sub);
-      if (status) b[status.label].push(item);
+      const field = item[submissionField];
+      if (Array.isArray(field)) {
+        // nested array case (e.g. supplierActions)
+        field.forEach((action) => {
+          statuses.forEach((s) => {
+            if (
+              action.categoryOfFinding === s.type &&
+              (s.subtype == null || action.nonComplianceType === s.subtype)
+            ) {
+              b[s.label].push(item);
+            }
+          });
+        });
+      } else if (field?.type != null) {
+        // simple object case
+        const match = statuses.find((s) => s.type === field.type);
+        if (match) b[match.label].push(item);
+      }
     });
     setBuckets(b);
   }, [
     data,
+    dateField,
+    submissionField,
+    statuses,
     selectedCategory,
     selectedLocation,
     selectedSupplier,
@@ -144,6 +168,7 @@ const AssessmentDashboard = ({
 
   return (
     <div className="chartDiv">
+      {/* View and chart type toggles */}
       <div className="filterTypeHeader">
         <Button
           label="Table View"
@@ -172,6 +197,8 @@ const AssessmentDashboard = ({
           className="m-1"
         />
       </div>
+
+      {/* Filters */}
       <div className="filterHeader">
         <MultiSelect
           value={selectedCategory}
@@ -210,16 +237,26 @@ const AssessmentDashboard = ({
           className="m-1"
         />
       </div>
+
       <hr />
+
+      {/* Chart or Table */}
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={chartOptions} />
       ) : (
         <DataTable value={filteredData} paginator rows={10}>
           {tableColumns.map((col) => (
-            <Column key={col.field} field={col.field} header={col.header} />
+            <Column
+              key={col.field}
+              field={col.field}
+              header={col.header}
+              body={col.body}
+            />
           ))}
         </DataTable>
       )}
+
+      {/* Caption & Source */}
       <div>
         <strong>Caption:</strong> {caption}
         <div className="filterHeader">
@@ -243,6 +280,8 @@ const AssessmentDashboard = ({
           </em>
         </div>
       </div>
+
+      {/* Modal Detail Table */}
       <Dialog
         header={modalTitle}
         visible={isModalVisible}
@@ -257,7 +296,12 @@ const AssessmentDashboard = ({
           responsiveLayout="scroll"
         >
           {tableColumns.map((col) => (
-            <Column key={col.field} field={col.field} header={col.header} />
+            <Column
+              key={col.field}
+              field={col.field}
+              header={col.header}
+              body={col.body}
+            />
           ))}
         </DataTable>
       </Dialog>

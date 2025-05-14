@@ -6,9 +6,13 @@ import "primereact/resources/themes/lara-light-cyan/theme.css";
 import supplierAssessmentData from "./data/supplierAssignmentWithAuditorandActions.json";
 import categoryData from "./data/categories.json";
 import AssessmentDashboard from "./components/AssessmentDashboard";
-import Observation from "./components/observation";
+// import Observation from "./components/observation";
 
 function App() {
+  const getCategoryName = (value) => {
+    const cat = categoryData.find((c) => c.value === value);
+    return cat ? cat.name : String(value);
+  };
   return (
     <PrimeReactProvider>
       <div className="App">
@@ -25,7 +29,11 @@ function App() {
           tableColumns={[
             { field: "vendor.supplierName", header: "Supplier" },
             { field: "vendor.supplierLocation", header: "Location" },
-            { field: "vendor.supplierCategory", header: "Category" },
+            {
+              field: "vendor.supplierCategory",
+              header: "Category",
+              body: (row) => getCategoryName(row.vendor.supplierCategory),
+            },
             { field: "assessmentStartDate", header: "Assessment Start Date" },
           ]}
           caption="Self Assessment summary"
@@ -46,14 +54,45 @@ function App() {
           tableColumns={[
             { field: "vendor.supplierName", header: "Supplier" },
             { field: "vendor.supplierLocation", header: "Location" },
-            { field: "vendor.supplierCategory", header: "Category" },
+            {
+              field: "vendor.supplierCategory",
+              header: "Category",
+              body: (row) => getCategoryName(row.vendor.supplierCategory),
+            },
             { field: "auditStartDate", header: "Audit Start Date" },
           ]}
           caption="Audit summary"
           sourceText="Data source: Internal ESG Reports"
         />
 
-        <Observation/>
+        {/* <Observation/> */}
+        <AssessmentDashboard
+          data={supplierAssessmentData}
+          categoryOptions={categoryData}
+          title="Observation Drilldown"
+          dateField="auditEndDate" // or auditStartDate, whatever you want to filter on
+          submissionField="supplierActions"
+          statuses={[
+            { label: "Good Practices", type: 1 },
+            { label: "Opportunity for Improvement", type: 2 },
+            { label: "Regulatory Major NC", type: 3, subtype: 1 },
+            { label: "Regulatory Minor NC", type: 3, subtype: 2 },
+            { label: "Minor NC", type: 3, subtype: 3 },
+          ]}
+          tableColumns={[
+            { field: "vendor.supplierName", header: "Supplier" },
+            { field: "vendor.supplierLocation", header: "Location" },
+            {
+              field: "vendor.supplierCategory",
+              header: "Category",
+              body: (row) => getCategoryName(row.vendor.supplierCategory),
+            },
+            { field: "assessmentStartDate", header: "Assessment Start Date" },
+            // …etc
+          ]}
+          caption="Observation summary"
+          sourceText="Data source: Internal ESG Reports"
+        />
       </div>
     </PrimeReactProvider>
   );
