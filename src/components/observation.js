@@ -1,256 +1,196 @@
+import React, { useEffect, useState } from "react";
 import supplierAssessmentData from "../data/supplierAssignmentWithAuditorandActions.json";
-import categoryData from "../data/categories.json";
-import Highcharts, { chart } from "highcharts";
+import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
 import "../App.css";
 import { Dropdown } from "primereact/dropdown";
-import { useEffect, useState, useRef } from "react";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { MultiSelect } from "primereact/multiselect";
 import { Dialog } from "primereact/dialog";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
+import categoryData from "../data/categories.json";
 
 import drilldown from "highcharts/modules/drilldown";
 import exporting from "highcharts/modules/exporting";
 import offlineExporting from "highcharts/modules/offline-exporting";
 import exportData from "highcharts/modules/export-data";
-
 function Observation() {
-  const [selectedCategory, setSelectedCategory] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState([]);
-  const [selectedDates, setSelectedDates] = useState("");
-  const [selectedData, setSelectedData] = useState([]);
+  const [selectedDates, setSelectedDates] = useState(null);
+  const [filteredData, setFilteredData] = useState(supplierAssessmentData);
+
   const [saGP, setSaGP] = useState([]);
   const [saOI, setSaOI] = useState([]);
   const [saRMaNC, setSaRMaNC] = useState([]);
   const [saRMiNC, setSaRMiNC] = useState([]);
   const [saMiNC, setSaMiNC] = useState([]);
 
+  const [viewMode, setViewMode] = useState("chart");
+  const [chartType, setChartType] = useState("column");
+
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
 
-  const [chartType, setChartType] = useState("column");
-  const [viewMode, setViewMode] = useState("chart");
+  const getCategoryName = (value) => {
+    const cat = categoryData.find((c) => c.value === value);
+    return cat ? cat.name : String(value);
+  };
 
-  const allSuppliers = Array.from(
-    new Set(
-      supplierAssessmentData.map((item) => item["vendor"]["supplierName"])
-    )
+  const allSuppliers = React.useMemo(
+    () => [
+      ...new Set(
+        supplierAssessmentData.map((item) => item.vendor.supplierName)
+      ),
+    ],
+    []
   );
 
-  const auditSubmitted = supplierAssessmentData.filter(
-    (item) => item.auditorAssignmentSubmission?.type == 2
+  const auditSubmitted = React.useMemo(
+    () =>
+      supplierAssessmentData.filter(
+        (item) => item.auditorAssignmentSubmission?.type === 2
+      ),
+    []
   );
 
-  const navigosPalette = {
+  const palette = {
     primary: "#2F80ED",
     secondary: ["#56CCF2", "#27AE60", "#F2994A", "#EB5757"],
     neutral: ["#333333", "#828282", "#BDBDBD", "#E0E0E0", "#F2F2F2"],
   };
 
-  const options = {
-    chart: {
-      type: chartType,
-      backgroundColor: "#FFFFFF",
-      style: { fontFamily: "Inter, Roboto, sans-serif" },
-    },
-    title: {
-      text: "Observation Drilldown",
-      style: { color: navigosPalette.neutral[0] },
-    },
-    xAxis: {
-      type: "category",
-      labels: {
-        style: { color: navigosPalette.neutral[0] },
+  const options = React.useMemo(
+    () => ({
+      chart: {
+        type: chartType,
+        backgroundColor: "#FFFFFF",
+        style: { fontFamily: "Inter, Roboto, sans-serif" },
       },
-    },
-    yAxis: {
-      title: { text: "Values" },
-      labels: { style: { color: navigosPalette.neutral[0] } },
-      gridLineColor: navigosPalette.neutral[3],
-    },
-    legend: {
-      enabled: true,
-      itemStyle: { color: navigosPalette.neutral[0] },
-    },
-    plotOptions: {
-      series: {
-        borderWidth: 0,
-        animation: false,
-        dataLabels: {
-          enabled: true,
-          style: {
-            color: "#333333",
-            textOutline: "none",
+      title: {
+        text: "Observation Drilldown",
+        style: { color: palette.neutral[0] },
+      },
+      xAxis: {
+        type: "category",
+        labels: { style: { color: palette.neutral[0] } },
+      },
+      yAxis: {
+        title: { text: "Values" },
+        labels: { style: { color: palette.neutral[0] } },
+        gridLineColor: palette.neutral[3],
+      },
+      legend: { enabled: true, itemStyle: { color: palette.neutral[0] } },
+      plotOptions: {
+        series: {
+          borderWidth: 0,
+          animation: false,
+          dataLabels: {
+            enabled: true,
+            style: { color: palette.neutral[0], textOutline: "none" },
           },
-        },
-        point: {
-          events: {
-            click: function () {
-              const pointName = this.name;
-              let dataToShow = [];
-
-              if (pointName === "SA Scheduled") dataToShow = saGP;
-              else if (pointName === "SA Completed") dataToShow = saOI;
-
-              setModalTitle(pointName);
-              setModalData(dataToShow);
-              setIsModalVisible(true);
+          point: {
+            events: {
+              click() {
+                const { name } = this;
+                let dataMap = {
+                  "Good Practices": saGP,
+                  "Opportunity for Improvement": saOI,
+                  "Regulatory Major Non-Compliance": saRMaNC,
+                  "Regulatory Minor Non-Compliance": saRMiNC,
+                  "Minor Non-Compliance": saMiNC,
+                };
+                setModalTitle(name);
+                setModalData(dataMap[name] || []);
+                setIsModalVisible(true);
+              },
             },
           },
         },
       },
-    },
-    tooltip: {
-      backgroundColor: "#FFFFFF",
-      borderColor: navigosPalette.primary,
-      style: {
-        color: navigosPalette.neutral[0],
+      tooltip: {
+        backgroundColor: "#FFFFFF",
+        borderColor: palette.primary,
+        style: { color: palette.neutral[0] },
+        headerFormat: "<span style='font-size:11px'>{series.name}</span><br>",
+        pointFormat:
+          "<span style='color:{point.color}'>{point.name}</span>: <b>{point.y}</b> assessments<br/>",
       },
-      headerFormat: "<span style='font-size:11px'>{series.name}</span><br>",
-      pointFormat:
-        "<span style='color:{point.color}'>{point.name}</span>: <b>{point.y}</b> assessments<br/>",
-    },
-    colors: [navigosPalette.primary, ...navigosPalette.secondary],
-    series: [
-      {
-        name: "Observations",
-        colorByPoint: true,
-        data: [
-          {
-            name: "Good Practices",
-            y: saGP.length,
-          },
-          {
-            name: "Opportunity for Improvement",
-            y: saOI.length,
-          },
-          {
-            name: "Regulatory Major Non-Compliance",
-            y: saRMaNC.length,
-          },
-          {
-            name: "Regulatory Minor Non-Compliance",
-            y: saRMiNC.length,
-          },
-          {
-            name: "Minor Non-Compliance",
-            y: saMiNC.length,
-          },
-        ],
-      },
-    ],
-    exporting: {
-      enabled: true,
-      fallbackToExportServer: false,
-      sourceWidth: 800,
-      sourceHeight: 400,
-    },
-    accessibility: {
-      enabled: true,
-      keyboardNavigation: {
+      colors: [palette.primary, ...palette.secondary],
+      series: [
+        {
+          name: "Observations",
+          colorByPoint: true,
+          data: [
+            { name: "Good Practices", y: saGP.length },
+            { name: "Opportunity for Improvement", y: saOI.length },
+            { name: "Regulatory Major Non-Compliance", y: saRMaNC.length },
+            { name: "Regulatory Minor Non-Compliance", y: saRMiNC.length },
+            { name: "Minor Non-Compliance", y: saMiNC.length },
+          ],
+        },
+      ],
+      exporting: {
         enabled: true,
+        fallbackToExportServer: false,
+        sourceWidth: 800,
+        sourceHeight: 400,
       },
-      point: {
-        valueDescriptionFormat: "{index}. {point.name}, {point.y} assessments.",
+      accessibility: {
+        enabled: true,
+        keyboardNavigation: { enabled: true },
+        point: {
+          valueDescriptionFormat:
+            "{index}. {point.name}, {point.y} assessments.",
+        },
       },
-    },
-  };
+    }),
+    [chartType, saGP, saOI, saRMaNC, saRMiNC, saMiNC]
+  );
 
   useEffect(() => {
-    let filtered = [...auditSubmitted];
-
-    console.log(selectedSupplier);
-
-    if (selectedSupplier.length > 0) {
-      filtered = filtered.filter((item) =>
-        selectedSupplier.includes(item.vendor?.supplierName)
+    let data = [...auditSubmitted];
+    if (selectedSupplier.length) {
+      data = data.filter((item) =>
+        selectedSupplier.includes(item.vendor.supplierName)
       );
     }
-
-    console.log(filtered);
-
     if (selectedDates) {
       const [start, end] = selectedDates;
-      filtered = filtered.filter((item) => {
-        const date = new Date(item.auditEndDate);
-        return date >= new Date(start) && date <= new Date(end);
+      data = data.filter((item) => {
+        const d = new Date(item.auditEndDate);
+        return d >= new Date(start) && d <= new Date(end);
       });
     }
+    setFilteredData(data);
 
-    const trimmed = filtered
-      .filter((item) =>
-        item.supplierActions?.some((a) => a.categoryOfFinding === 1)
-      )
-      .map((item) => ({
-        ...item,
-        supplierActions: item.supplierActions.filter(
-          (a) => a.categoryOfFinding === 1
-        ),
-      }));
-    setSaGP(trimmed);
+    const categorize = (cat, typeFilter) =>
+      data
+        .filter((item) =>
+          item.supplierActions?.some((a) => a.categoryOfFinding === cat)
+        )
+        .map((item) => ({
+          ...item,
+          supplierActions: item.supplierActions.filter(
+            (a) =>
+              a.categoryOfFinding === cat &&
+              (!typeFilter || a.nonComplianceType === typeFilter)
+          ),
+        }));
 
-    const trimmed2 = filtered
-      .filter((item) =>
-        item.supplierActions?.some((a) => a.categoryOfFinding === 2)
-      )
-      .map((item) => ({
-        ...item,
-        supplierActions: item.supplierActions.filter(
-          (a) => a.categoryOfFinding === 2
-        ),
-      }));
-    setSaOI(trimmed2);
-
-    const trimmed3 = filtered
-      .filter((item) =>
-        item.supplierActions?.some((a) => a.categoryOfFinding === 3)
-      )
-      .map((item) => ({
-        ...item,
-        supplierActions: item.supplierActions.filter(
-          (a) => a.categoryOfFinding === 3 && a.nonComplianceType === 1
-        ),
-      }));
-    setSaRMaNC(trimmed3);
-
-    const trimmed4 = filtered
-      .filter((item) =>
-        item.supplierActions?.some((a) => a.categoryOfFinding === 3)
-      )
-      .map((item) => ({
-        ...item,
-        supplierActions: item.supplierActions.filter(
-          (a) => a.categoryOfFinding === 3 && a.nonComplianceType === 2
-        ),
-      }));
-    setSaRMiNC(trimmed4);
-
-    const trimmed5 = filtered
-      .filter((item) =>
-        item.supplierActions?.some((a) => a.categoryOfFinding === 3)
-      )
-      .map((item) => ({
-        ...item,
-        supplierActions: item.supplierActions.filter(
-          (a) => a.categoryOfFinding === 3 && a.nonComplianceType === 3
-        ),
-      }));
-    setSaMiNC(trimmed5);
-
-    setSelectedData(filtered);
-  }, [selectedSupplier, selectedDates]);
+    setSaGP(categorize(1));
+    setSaOI(categorize(2));
+    setSaRMaNC(categorize(3, 1));
+    setSaRMiNC(categorize(3, 2));
+    setSaMiNC(categorize(3, 3));
+  }, [selectedSupplier, selectedDates, auditSubmitted]);
 
   const clearFilters = () => {
-    setSelectedCategory([]);
-    setSelectedLocation([]);
     setSelectedSupplier([]);
-    setSelectedDates("");
-    setSelectedData(supplierAssessmentData);
+    setSelectedDates(null);
+    setFilteredData(supplierAssessmentData);
   };
 
   return (
@@ -260,13 +200,13 @@ function Observation() {
           label="Table View"
           icon="pi pi-table"
           onClick={() => setViewMode("table")}
-          className={viewMode === "table" ? "p-button-info" : " m-1"}
+          className={viewMode === "table" ? "p-button-info" : "m-1"}
         />
         <Button
           label="Chart View"
           icon="pi pi-chart-bar"
           onClick={() => setViewMode("chart")}
-          className={viewMode === "chart" ? "p-button-info" : " m-1"}
+          className={viewMode === "chart" ? "p-button-info" : "m-1"}
         />
         <Dropdown
           value={chartType}
@@ -280,124 +220,102 @@ function Observation() {
             setChartType(e.value);
             setViewMode("chart");
           }}
-          placeholder="Select Chart Type"
           className="m-1"
         />
       </div>
-
       <div className="filterHeader">
-        {/* <div>
-          <Button label="Category" className="p-button-primary m-1" />
-          <MultiSelect
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.value)}
-            options={categoryData}
-            optionLabel="name"
-            display="chip"
-            placeholder="Select a Category"
-            maxSelectedLabels={8}
-            className="m-1"
-          />
-        </div>
-        <div>
-          <Button label="Location" className="m-1" />
-
-          <MultiSelect
-            className="m-1"
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.value)}
-            options={allLocations}
-            placeholder="Select a Location"
-            optionLabel=""
-            display="chip"
-            maxSelectedLabels={8}
-          />
-        </div> */}
         <div>
           <Button label="Supplier" className="m-1" />
-
           <MultiSelect
-            className="m-1"
             value={selectedSupplier}
-            onChange={(e) => setSelectedSupplier(e.value)}
             options={allSuppliers}
-            placeholder="Select a Supplier"
-            optionLabel=""
+            onChange={(e) => setSelectedSupplier(e.value)}
+            placeholder="Select Suppliers"
             display="chip"
-            maxSelectedLabels={8}
+            className="m-1"
           />
         </div>
         <div>
           <Button label="Date Range" className="m-1" />
           <Calendar
-            className="m-1"
             value={selectedDates}
             onChange={(e) => setSelectedDates(e.value)}
             selectionMode="range"
             readOnlyInput
             hideOnRangeSelection
+            className="m-1"
           />
         </div>
         <div>
           <Button
-            onClick={() => clearFilters()}
-            severity="danger"
             label="Clear"
+            severity="danger"
+            onClick={clearFilters}
             className="m-1"
           />
         </div>
       </div>
       <hr />
+
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={options} />
       ) : (
-        <DataTable value={selectedData} paginator rows={10}>
+        <DataTable value={filteredData} paginator rows={10}>
+          <Column field="id" header="ID" />
           <Column field="vendor.supplierName" header="Supplier" />
           <Column field="vendor.supplierLocation" header="Location" />
-          <Column field="vendor.supplierCategory" header="Category" />
-          <Column field="assessmentStartDate" header="Assessment Start Date" />
           <Column
-            header="Status"
-            body={(rowData) =>
-              rowData.assessmentStartDate == null
-                ? "Not Started"
-                : rowData.supplierAssignmentSubmission?.type === 0
-                ? "Scheduled"
-                : "Completed"
+            field="vendor.supplierCategory"
+            header="Category"
+            body={(row) => getCategoryName(row.vendor.supplierCategory)}
+          />
+          <Column
+            field="assessmentStartDate"
+            header="Assessment Start Date"
+            body={(row) =>
+              row.assessmentStartDate
+                ? new Date(row.assessmentStartDate).toLocaleDateString()
+                : "-"
             }
+          />
+          <Column
+            field="auditStartDate"
+            header="Audit Start Date"
+            body={(row) =>
+              row.auditStartDate
+                ? new Date(row.auditStartDate).toLocaleDateString()
+                : "-"
+            }
+          />
+          <Column
+            field="auditEndDate"
+            header="Audit End Date"
+            body={(row) =>
+              row.auditEndDate
+                ? new Date(row.auditEndDate).toLocaleDateString()
+                : "-"
+            }
+          />
+          <Column
+            header="Submission Status"
+            body={(row) =>
+              row.supplierAssignmentSubmission?.type === 0
+                ? "Scheduled"
+                : row.supplierAssignmentSubmission?.type === 1
+                ? "Completed"
+                : "-"
+            }
+          />
+          <Column
+            field="supplierAssignmentSubmission.supplierMSIScore"
+            header="Supplier Score"
+          />
+          <Column
+            field="auditorAssignmentSubmission.auditorMSIScore"
+            header="Auditor Score"
           />
         </DataTable>
       )}
-
-      <div>
-        <div>
-          <strong>Caption:</strong> Self Assessment summary
-        </div>
-        <div className="filterHeader">
-          <div>
-            <em>Data source: Internal ESG Reports</em>
-          </div>
-          <div>
-            <em>
-              Filtered by:{" "}
-              {[
-                selectedCategory.length &&
-                  `Category: ${selectedCategory.join(", ")}`,
-                selectedLocation.length &&
-                  `Location: ${selectedLocation.join(", ")}`,
-                selectedSupplier.length &&
-                  `Supplier: ${selectedSupplier.join(", ")}`,
-                selectedDates &&
-                  `Dates: ${selectedDates
-                    .map((d) => d?.toLocaleDateString())
-                    .join(" - ")}`,
-              ]
-                .filter(Boolean)
-                .join(" | ")}
-            </em>
-          </div>
-        </div>
-      </div>
 
       <Dialog
         header={modalTitle}
@@ -413,19 +331,58 @@ function Observation() {
           stripedRows
           responsiveLayout="scroll"
         >
+          <Column field="id" header="ID" />
           <Column field="vendor.supplierName" header="Supplier" />
           <Column field="vendor.supplierLocation" header="Location" />
-          <Column field="vendor.supplierCategory" header="Category" />
-          <Column field="assessmentStartDate" header="Assessment Start Date" />
           <Column
-            header="Status"
-            body={(rowData) =>
-              rowData.assessmentStartDate == null
-                ? "Not Started"
-                : rowData.supplierAssignmentSubmission?.type === 0
-                ? "Scheduled"
-                : "Completed"
+            field="vendor.supplierCategory"
+            header="Category"
+            body={(row) => getCategoryName(row.vendor.supplierCategory)}
+          />
+          <Column
+            field="assessmentStartDate"
+            header="Assessment Start Date"
+            body={(row) =>
+              row.assessmentStartDate
+                ? new Date(row.assessmentStartDate).toLocaleDateString()
+                : "-"
             }
+          />
+          <Column
+            field="auditStartDate"
+            header="Audit Start Date"
+            body={(row) =>
+              row.auditStartDate
+                ? new Date(row.auditStartDate).toLocaleDateString()
+                : "-"
+            }
+          />
+          <Column
+            field="auditEndDate"
+            header="Audit End Date"
+            body={(row) =>
+              row.auditEndDate
+                ? new Date(row.auditEndDate).toLocaleDateString()
+                : "-"
+            }
+          />
+          <Column
+            header="Submission Status"
+            body={(row) =>
+              row.supplierAssignmentSubmission?.type === 0
+                ? "Scheduled"
+                : row.supplierAssignmentSubmission?.type === 1
+                ? "Completed"
+                : "-"
+            }
+          />
+          <Column
+            field="supplierAssignmentSubmission.supplierMSIScore"
+            header="Supplier Score"
+          />
+          <Column
+            field="auditorAssignmentSubmission.auditorMSIScore"
+            header="Auditor Score"
           />
         </DataTable>
       </Dialog>
