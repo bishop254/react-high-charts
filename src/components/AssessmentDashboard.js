@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts";
 import "../App.css";
@@ -34,6 +34,9 @@ const AssessmentDashboard = ({
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
+
+  const [globalFilter, setGlobalFilter] = useState("");
+  const dt = useRef(null);
 
   const allLocations = React.useMemo(
     () => [...new Set(data.map((i) => i.vendor?.supplierLocation))],
@@ -251,16 +254,49 @@ const AssessmentDashboard = ({
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={chartOptions} />
       ) : (
-        <DataTable value={filteredData} paginator rows={10}>
-          {tableColumns.map((col) => (
-            <Column
-              key={col.field}
-              field={col.field}
-              header={col.header}
-              body={col.body}
-            />
-          ))}
-        </DataTable>
+        <>
+          <div className="filterHeader">
+            <span className="p-input-icon-left m-2">
+              <i className="pi pi-search" />
+              <input
+                type="search"
+                value={globalFilter}
+                onChange={(e) => setGlobalFilter(e.target.value)}
+                placeholder="Global Search"
+                className="p-inputtext p-component"
+              />
+            </span>
+
+            <div className="m-2">
+              <Button
+                label="Export to CSV"
+                icon="pi pi-download"
+                onClick={() => dt.current.exportCSV()}
+                className="p-button-success m-1"
+              />
+            </div>
+          </div>
+          <DataTable
+            value={filteredData}
+            paginator
+            rows={10}
+            ref={dt}
+            globalFilter={globalFilter}
+            header={null}
+          >
+            {tableColumns.map((col) => (
+              <Column
+                key={col.field}
+                field={col.field}
+                header={col.header}
+                body={col.body}
+                filter
+                filterPlaceholder={`Search ${col.header}`}
+                sortable
+              />
+            ))}
+          </DataTable>
+        </>
       )}
 
       <div>
@@ -294,11 +330,34 @@ const AssessmentDashboard = ({
         modal
         onHide={() => setIsModalVisible(false)}
       >
+        <div className="filterHeader">
+          <span className="p-input-icon-left m-2">
+            <i className="pi pi-search" />
+            <input
+              type="search"
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder="Global Search"
+              className="p-inputtext p-component"
+            />
+          </span>
+
+          <div className="m-2">
+            <Button
+              label="Export to CSV"
+              icon="pi pi-download"
+              onClick={() => dt.current.exportCSV()}
+              className="p-button-success m-1"
+            />
+          </div>
+        </div>
+
         <DataTable
           value={modalData}
           paginator
           rows={10}
           responsiveLayout="scroll"
+          globalFilter={globalFilter}
         >
           {tableColumns.map((col) => (
             <Column
@@ -306,6 +365,9 @@ const AssessmentDashboard = ({
               field={col.field}
               header={col.header}
               body={col.body}
+              filter
+              filterPlaceholder={`Search ${col.header}`}
+              sortable
             />
           ))}
         </DataTable>
