@@ -6,6 +6,7 @@ import "primereact/resources/themes/lara-light-cyan/theme.css";
 import supplierAssessmentData from "./data/supplierAssignmentWithAuditorandActions.json";
 import categoryData from "./data/categories.json";
 import AssessmentDashboard from "./components/AssessmentDashboard";
+import Observation from "./components/observation";
 
 function App() {
   return (
@@ -31,7 +32,6 @@ function App() {
           sourceText="Data source: Internal ESG Reports"
         />
 
-        
         <AssessmentDashboard
           data={supplierAssessmentData}
           categoryOptions={categoryData}
@@ -51,7 +51,9 @@ function App() {
           ]}
           caption="Audit summary"
           sourceText="Data source: Internal ESG Reports"
-        />{" "}
+        />
+
+        <Observation/>
       </div>
     </PrimeReactProvider>
   );
