@@ -6,13 +6,13 @@ import "primereact/resources/themes/lara-light-cyan/theme.css";
 import supplierAssessmentData from "./data/supplierAssignmentWithAuditorandActions.json";
 import categoryData from "./data/categories.json";
 import AssessmentDashboard from "./components/AssessmentDashboard";
-// import Observation from "./components/observation";
 
 function App() {
   const getCategoryName = (value) => {
     const cat = categoryData.find((c) => c.value === value);
     return cat ? cat.name : String(value);
   };
+
   return (
     <PrimeReactProvider>
       <div className="App">
@@ -34,7 +34,14 @@ function App() {
               header: "Category",
               body: (row) => getCategoryName(row.vendor.supplierCategory),
             },
-            { field: "assessmentStartDate", header: "Assessment Start Date" },
+            {
+              field: "assessmentStartDate",
+              header: "Assessment Start Date",
+              body: (row) =>
+                row.assessmentStartDate
+                  ? new Date(row.assessmentStartDate).toDateString()
+                  : "-",
+            },
           ]}
           caption="Self Assessment summary"
           sourceText="Data source: Internal ESG Reports"
@@ -59,18 +66,26 @@ function App() {
               header: "Category",
               body: (row) => getCategoryName(row.vendor.supplierCategory),
             },
-            { field: "auditStartDate", header: "Audit Start Date" },
+            {
+              field: "auditStartDate",
+              header: "Audit Start Date",
+              body: (row) =>
+                row.auditStartDate
+                  ? new Date(row.auditStartDate).toDateString()
+                  : "-",
+            },
           ]}
           caption="Audit summary"
           sourceText="Data source: Internal ESG Reports"
         />
 
-        {/* <Observation/> */}
         <AssessmentDashboard
-          data={supplierAssessmentData}
+          data={supplierAssessmentData.filter(
+            (item) => item.auditorAssignmentSubmission?.type === 2
+          )}
           categoryOptions={categoryData}
           title="Observation Drilldown"
-          dateField="auditEndDate" // or auditStartDate, whatever you want to filter on
+          dateField="auditEndDate"
           submissionField="supplierActions"
           statuses={[
             { label: "Good Practices", type: 1 },
@@ -87,8 +102,14 @@ function App() {
               header: "Category",
               body: (row) => getCategoryName(row.vendor.supplierCategory),
             },
-            { field: "assessmentStartDate", header: "Assessment Start Date" },
-            // …etc
+            {
+              field: "assessmentStartDate",
+              header: "Assessment Start Date",
+              body: (row) =>
+                row.assessmentStartDate
+                  ? new Date(row.assessmentStartDate).toDateString()
+                  : "-",
+            },
           ]}
           caption="Observation summary"
           sourceText="Data source: Internal ESG Reports"

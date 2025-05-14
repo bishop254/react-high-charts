@@ -10,8 +10,6 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Dialog } from "primereact/dialog";
 
-// Initialize Highcharts exporting
-
 const AssessmentDashboard = ({
   data,
   categoryOptions,
@@ -23,24 +21,20 @@ const AssessmentDashboard = ({
   caption,
   sourceText,
 }) => {
-  // filter states
   const [selectedCategory, setSelectedCategory] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState([]);
   const [selectedSupplier, setSelectedSupplier] = useState([]);
   const [selectedDates, setSelectedDates] = useState(null);
 
-  // data buckets
   const [filteredData, setFilteredData] = useState([]);
   const [buckets, setBuckets] = useState({});
 
-  // UI state
   const [chartType, setChartType] = useState("column");
   const [viewMode, setViewMode] = useState("chart");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [modalData, setModalData] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
 
-  // derive unique filter options
   const allLocations = React.useMemo(
     () => [...new Set(data.map((i) => i.vendor?.supplierLocation))],
     [data]
@@ -50,7 +44,23 @@ const AssessmentDashboard = ({
     [data]
   );
 
-  // build chart options
+  const filterRelevantActions = (item, type, subtype = null) => {
+    if (!Array.isArray(item[submissionField])) return item;
+
+    const filteredActions = item[submissionField].filter(
+      (action) =>
+        action.categoryOfFinding === type &&
+        (subtype == null || action.nonComplianceType === subtype)
+    );
+
+    if (filteredActions.length === 0) return null;
+
+    return {
+      ...item,
+      [submissionField]: filteredActions,
+    };
+  };
+
   const chartOptions = React.useMemo(
     () => ({
       chart: { type: chartType, backgroundColor: "#FFF" },
@@ -64,8 +74,17 @@ const AssessmentDashboard = ({
           point: {
             events: {
               click() {
+                const match = statuses.find((s) => s.label === this.name);
+                if (!match) return;
+
+                const filtered = (buckets[this.name] || [])
+                  .map((item) =>
+                    filterRelevantActions(item, match.type, match.subtype)
+                  )
+                  .filter(Boolean);
+
                 setModalTitle(this.name);
-                setModalData(buckets[this.name] || []);
+                setModalData(filtered);
                 setIsModalVisible(true);
               },
             },
@@ -96,25 +115,20 @@ const AssessmentDashboard = ({
     [chartType, title, statuses, buckets]
   );
 
-  // filtering and bucketing
   useEffect(() => {
     let tmp = [...data];
-    // category filter
     if (selectedCategory.length)
       tmp = tmp.filter((d) =>
         selectedCategory.includes(d.vendor?.supplierCategory)
       );
-    // location filter
     if (selectedLocation.length)
       tmp = tmp.filter((d) =>
         selectedLocation.includes(d.vendor?.supplierLocation)
       );
-    // supplier filter
     if (selectedSupplier.length)
       tmp = tmp.filter((d) =>
         selectedSupplier.includes(d.vendor?.supplierName)
       );
-    // date range filter
     if (selectedDates) {
       const [start, end] = selectedDates;
       tmp = tmp.filter((d) => {
@@ -124,13 +138,10 @@ const AssessmentDashboard = ({
     }
     setFilteredData(tmp);
 
-    // initialize buckets
     const b = statuses.reduce((acc, s) => ({ ...acc, [s.label]: [] }), {});
-    // populate buckets
     tmp.forEach((item) => {
       const field = item[submissionField];
       if (Array.isArray(field)) {
-        // nested array case (e.g. supplierActions)
         field.forEach((action) => {
           statuses.forEach((s) => {
             if (
@@ -142,7 +153,6 @@ const AssessmentDashboard = ({
           });
         });
       } else if (field?.type != null) {
-        // simple object case
         const match = statuses.find((s) => s.type === field.type);
         if (match) b[match.label].push(item);
       }
@@ -168,7 +178,6 @@ const AssessmentDashboard = ({
 
   return (
     <div className="chartDiv">
-      {/* View and chart type toggles */}
       <div className="filterTypeHeader">
         <Button
           label="Table View"
@@ -198,7 +207,6 @@ const AssessmentDashboard = ({
         />
       </div>
 
-      {/* Filters */}
       <div className="filterHeader">
         <MultiSelect
           value={selectedCategory}
@@ -240,7 +248,6 @@ const AssessmentDashboard = ({
 
       <hr />
 
-      {/* Chart or Table */}
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={chartOptions} />
       ) : (
@@ -256,7 +263,6 @@ const AssessmentDashboard = ({
         </DataTable>
       )}
 
-      {/* Caption & Source */}
       <div>
         <strong>Caption:</strong> {caption}
         <div className="filterHeader">
@@ -281,7 +287,6 @@ const AssessmentDashboard = ({
         </div>
       </div>
 
-      {/* Modal Detail Table */}
       <Dialog
         header={modalTitle}
         visible={isModalVisible}
