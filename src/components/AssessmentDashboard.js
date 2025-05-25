@@ -229,14 +229,14 @@ const AssessmentDashboard = ({
           options={allSuppliers}
           placeholder="Supplier"
         />
-        {/* <Calendar
+        <Calendar
           value={selectedDates}
           onChange={(e) => setSelectedDates(e.value)}
           selectionMode="range"
           readOnlyInput
           hideOnRangeSelection
           placeholder="Select date range"
-        /> */}
+        />
         <Button label="Clear" severity="danger" onClick={clearFilters} />
       </div>
 
