@@ -3,20 +3,19 @@ import "./App.css";
 import { PrimeReactProvider } from "primereact/api";
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 
-import supplierAssessmentData from "./data/supplierAssignmentWithAuditorandActions.json";
-import categoryData from "./data/categories.json";
-import AssessmentDashboard from "./components/AssessmentDashboard";
+import NewHeader from "./components/new/header";
+import "primeflex/primeflex.css";
+import DashboardOverview from "./components/new/dashboard-overview";
 
 function App() {
-  const getCategoryName = (value) => {
-    const cat = categoryData.find((c) => c.value === value);
-    return cat ? cat.name : String(value);
-  };
-
   return (
     <PrimeReactProvider>
       <div className="App">
-        <AssessmentDashboard
+        <NewHeader />
+
+        <DashboardOverview />
+
+        {/* <AssessmentDashboard
           data={supplierAssessmentData}
           categoryOptions={categoryData}
           title="Self Assessment Drilldown"
@@ -113,7 +112,7 @@ function App() {
           ]}
           caption="Observation summary"
           sourceText="Data source: Internal ESG Reports"
-        />
+        /> */}
       </div>
     </PrimeReactProvider>
   );

@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts";
-import "../App.css";
 import { Dropdown } from "primereact/dropdown";
 import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
@@ -38,11 +37,11 @@ const AssessmentDashboard = ({
   const [globalFilter, setGlobalFilter] = useState("");
   const dt = useRef(null);
 
-  const allLocations = React.useMemo(
+  const allLocations = useMemo(
     () => [...new Set(data.map((i) => i.vendor?.supplierLocation))],
     [data]
   );
-  const allSuppliers = React.useMemo(
+  const allSuppliers = useMemo(
     () => [...new Set(data.map((i) => i.vendor?.supplierName))],
     [data]
   );
@@ -64,12 +63,12 @@ const AssessmentDashboard = ({
     };
   };
 
-  const chartOptions = React.useMemo(
+  const chartOptions = useMemo(
     () => ({
       chart: { type: chartType, backgroundColor: "#FFF" },
-      title: { text: title, style: { color: "#333" } },
-      xAxis: { type: "category", labels: { style: { color: "#333" } } },
-      yAxis: { title: { text: "Count" }, labels: { style: { color: "#333" } } },
+      title: { text: null, disabld: true },
+      xAxis: { type: "category" },
+      yAxis: { title: { text: "Count" } },
       plotOptions: {
         series: {
           borderWidth: 0,
@@ -108,12 +107,7 @@ const AssessmentDashboard = ({
           })),
         },
       ],
-      exporting: {
-        enabled: true,
-        fallbackToExportServer: false,
-        sourceWidth: 800,
-        sourceHeight: 400,
-      },
+      credits: { enabled: false },
     }),
     [chartType, title, statuses, buckets]
   );
@@ -180,19 +174,24 @@ const AssessmentDashboard = ({
   };
 
   return (
-    <div className="chartDiv">
-      <div className="filterTypeHeader">
+    <div className="p-4">
+      {/* View and Chart Type Controls */}
+      <div className="flex flex-wrap align-items-center gap-2 mb-3">
         <Button
           label="Table View"
           icon="pi pi-table"
           onClick={() => setViewMode("table")}
-          className={viewMode === "table" ? "p-button-info" : "m-1"}
+          className={
+            viewMode === "table" ? "p-button-info" : "p-button-outlined"
+          }
         />
         <Button
           label="Chart View"
           icon="pi pi-chart-bar"
           onClick={() => setViewMode("chart")}
-          className={viewMode === "chart" ? "p-button-info" : "m-1"}
+          className={
+            viewMode === "chart" ? "p-button-info" : "p-button-outlined"
+          }
         />
         <Dropdown
           value={chartType}
@@ -206,57 +205,53 @@ const AssessmentDashboard = ({
             setChartType(e.value);
             setViewMode("chart");
           }}
-          className="m-1"
         />
       </div>
 
-      <div className="filterHeader">
+      {/* Filters */}
+      <div className="flex flex-wrap align-items-center gap-2 mt-3">
         <MultiSelect
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.value)}
           options={categoryOptions}
           optionLabel="name"
           placeholder="Category"
-          className="m-1"
         />
         <MultiSelect
           value={selectedLocation}
           onChange={(e) => setSelectedLocation(e.value)}
           options={allLocations}
           placeholder="Location"
-          className="m-1"
         />
         <MultiSelect
           value={selectedSupplier}
           onChange={(e) => setSelectedSupplier(e.value)}
           options={allSuppliers}
           placeholder="Supplier"
-          className="m-1"
         />
-        <Calendar
+        {/* <Calendar
           value={selectedDates}
           onChange={(e) => setSelectedDates(e.value)}
           selectionMode="range"
           readOnlyInput
           hideOnRangeSelection
-          className="m-1"
-        />
-        <Button
-          label="Clear"
-          severity="danger"
-          onClick={clearFilters}
-          className="m-1"
-        />
+          placeholder="Select date range"
+        /> */}
+        <Button label="Clear" severity="danger" onClick={clearFilters} />
       </div>
 
-      <hr />
+      <hr className="my-3" />
 
+      {/* Chart or Table View */}
       {viewMode === "chart" ? (
-        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+        <div className="card mb-4">
+          {/* <div className="text-sm font-medium text-900 mb-2">{title}</div> */}
+          <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+        </div>
       ) : (
         <>
-          <div className="filterHeader">
-            <span className="p-input-icon-left m-2">
+          <div className="flex flex-wrap align-items-center gap-2 mb-3">
+            <span className="p-input-icon-left">
               <i className="pi pi-search" />
               <input
                 type="search"
@@ -267,42 +262,43 @@ const AssessmentDashboard = ({
               />
             </span>
 
-            <div className="m-2">
-              <Button
-                label="Export to CSV"
-                icon="pi pi-download"
-                onClick={() => dt.current.exportCSV()}
-                className="p-button-success m-1"
-              />
-            </div>
+            <Button
+              label="Export to CSV"
+              icon="pi pi-download"
+              onClick={() => dt.current.exportCSV()}
+              className="p-button-success"
+            />
           </div>
-          <DataTable
-            value={filteredData}
-            paginator
-            rows={10}
-            ref={dt}
-            globalFilter={globalFilter}
-            header={null}
-          >
-            {tableColumns.map((col) => (
-              <Column
-                key={col.field}
-                field={col.field}
-                header={col.header}
-                body={col.body}
-                filter
-                filterPlaceholder={`Search ${col.header}`}
-                sortable
-              />
-            ))}
-          </DataTable>
+
+          <div className="card">
+            <DataTable
+              value={filteredData}
+              paginator
+              rows={10}
+              ref={dt}
+              globalFilter={globalFilter}
+            >
+              {tableColumns.map((col) => (
+                <Column
+                  key={col.field}
+                  field={col.field}
+                  header={col.header}
+                  body={col.body}
+                  filter
+                  filterPlaceholder={`Search ${col.header}`}
+                  sortable
+                />
+              ))}
+            </DataTable>
+          </div>
         </>
       )}
 
-      <div>
+      <div className="mt-3">
         <strong>Caption:</strong> {caption}
-        <div className="filterHeader">
+        <div className="text-sm text-color-secondary mt-1">
           <em>{sourceText}</em>
+          <br />
           <em>
             Filtered by:{" "}
             {[
@@ -323,6 +319,7 @@ const AssessmentDashboard = ({
         </div>
       </div>
 
+      {/* Modal Dialog */}
       <Dialog
         header={modalTitle}
         visible={isModalVisible}
@@ -330,8 +327,8 @@ const AssessmentDashboard = ({
         modal
         onHide={() => setIsModalVisible(false)}
       >
-        <div className="filterHeader">
-          <span className="p-input-icon-left m-2">
+        <div className="flex flex-wrap align-items-center gap-2 mb-3">
+          <span className="p-input-icon-left">
             <i className="pi pi-search" />
             <input
               type="search"
@@ -342,14 +339,12 @@ const AssessmentDashboard = ({
             />
           </span>
 
-          <div className="m-2">
-            <Button
-              label="Export to CSV"
-              icon="pi pi-download"
-              onClick={() => dt.current.exportCSV()}
-              className="p-button-success m-1"
-            />
-          </div>
+          <Button
+            label="Export to CSV"
+            icon="pi pi-download"
+            onClick={() => dt.current.exportCSV()}
+            className="p-button-success"
+          />
         </div>
 
         <DataTable
