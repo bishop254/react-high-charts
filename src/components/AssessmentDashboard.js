@@ -20,6 +20,10 @@ const AssessmentDashboard = ({
   tableColumns,
   caption,
   sourceText,
+  hasHeader,
+  hasFooter,
+  hasCss,
+  chartOverrideType,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState([]);
@@ -179,77 +183,89 @@ const AssessmentDashboard = ({
     setSelectedDates(null);
   };
 
+  useEffect(() => {
+    console.log(chartOverrideType);
+
+    if (chartOverrideType !== null) {
+      setChartType(chartOverrideType);
+    }
+  }, []);
+
   return (
-    <div className="chartDiv">
-      <div className="filterTypeHeader">
-        <Button
-          label="Table View"
-          icon="pi pi-table"
-          onClick={() => setViewMode("table")}
-          className={viewMode === "table" ? "p-button-info" : "m-1"}
-        />
-        <Button
-          label="Chart View"
-          icon="pi pi-chart-bar"
-          onClick={() => setViewMode("chart")}
-          className={viewMode === "chart" ? "p-button-info" : "m-1"}
-        />
-        <Dropdown
-          value={chartType}
-          options={[
-            { label: "Column", value: "column" },
-            { label: "Line", value: "line" },
-            { label: "Bar", value: "bar" },
-            { label: "Pie", value: "pie" },
-          ]}
-          onChange={(e) => {
-            setChartType(e.value);
-            setViewMode("chart");
-          }}
-          className="m-1"
-        />
-      </div>
+    <div className={hasCss ? "chartDiv" : ""}>
+      {hasHeader && (
+        <>
+          <div className="filterTypeHeader">
+            <Button
+              label="Table View"
+              icon="pi pi-table"
+              onClick={() => setViewMode("table")}
+              className={viewMode === "table" ? "p-button-info" : "m-1"}
+            />
+            <Button
+              label="Chart View"
+              icon="pi pi-chart-bar"
+              onClick={() => setViewMode("chart")}
+              className={viewMode === "chart" ? "p-button-info" : "m-1"}
+            />
+            <Dropdown
+              value={chartType}
+              options={[
+                { label: "Column", value: "column" },
+                { label: "Line", value: "line" },
+                { label: "Bar", value: "bar" },
+                { label: "Pie", value: "pie" },
+              ]}
+              onChange={(e) => {
+                setChartType(e.value);
+                setViewMode("chart");
+              }}
+              className="m-1"
+            />
+          </div>
 
-      <div className="filterHeader">
-        <MultiSelect
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.value)}
-          options={categoryOptions}
-          optionLabel="name"
-          placeholder="Category"
-          className="m-1"
-        />
-        <MultiSelect
-          value={selectedLocation}
-          onChange={(e) => setSelectedLocation(e.value)}
-          options={allLocations}
-          placeholder="Location"
-          className="m-1"
-        />
-        <MultiSelect
-          value={selectedSupplier}
-          onChange={(e) => setSelectedSupplier(e.value)}
-          options={allSuppliers}
-          placeholder="Supplier"
-          className="m-1"
-        />
-        <Calendar
-          value={selectedDates}
-          onChange={(e) => setSelectedDates(e.value)}
-          selectionMode="range"
-          readOnlyInput
-          hideOnRangeSelection
-          className="m-1"
-        />
-        <Button
-          label="Clear"
-          severity="danger"
-          onClick={clearFilters}
-          className="m-1"
-        />
-      </div>
+          <div className="filterHeader">
+            <MultiSelect
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.value)}
+              options={categoryOptions}
+              optionLabel="name"
+              placeholder="Category"
+              className="m-1"
+            />
+            <MultiSelect
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.value)}
+              options={allLocations}
+              placeholder="Location"
+              className="m-1"
+            />
+            <MultiSelect
+              value={selectedSupplier}
+              onChange={(e) => setSelectedSupplier(e.value)}
+              options={allSuppliers}
+              placeholder="Supplier"
+              className="m-1"
+            />
+            <Calendar
+              value={selectedDates}
+              onChange={(e) => setSelectedDates(e.value)}
+              selectionMode="range"
+              readOnlyInput
+              hideOnRangeSelection
+              className="m-1"
+            />
+            <Button
+              label="Clear"
+              severity="danger"
+              onClick={clearFilters}
+              className="m-1"
+            />
+          </div>
 
-      <hr />
+          <hr />
+        </>
+      )}
 
       {viewMode === "chart" ? (
         <HighchartsReact highcharts={Highcharts} options={chartOptions} />
@@ -299,29 +315,31 @@ const AssessmentDashboard = ({
         </>
       )}
 
-      <div>
-        <strong>Caption:</strong> {caption}
-        <div className="filterHeader">
-          <em>{sourceText}</em>
-          <em>
-            Filtered by:{" "}
-            {[
-              selectedCategory.length &&
-                `Category: ${selectedCategory.join(", ")}`,
-              selectedLocation.length &&
-                `Location: ${selectedLocation.join(", ")}`,
-              selectedSupplier.length &&
-                `Supplier: ${selectedSupplier.join(", ")}`,
-              selectedDates &&
-                `Dates: ${selectedDates
-                  .map((d) => d.toLocaleDateString())
-                  .join(" - ")}`,
-            ]
-              .filter(Boolean)
-              .join(" | ")}
-          </em>
+      {hasFooter && (
+        <div>
+          <strong>Caption:</strong> {caption}
+          <div className="filterHeader">
+            <em>{sourceText}</em>
+            <em>
+              Filtered by:{" "}
+              {[
+                selectedCategory.length &&
+                  `Category: ${selectedCategory.join(", ")}`,
+                selectedLocation.length &&
+                  `Location: ${selectedLocation.join(", ")}`,
+                selectedSupplier.length &&
+                  `Supplier: ${selectedSupplier.join(", ")}`,
+                selectedDates &&
+                  `Dates: ${selectedDates
+                    .map((d) => d.toLocaleDateString())
+                    .join(" - ")}`,
+              ]
+                .filter(Boolean)
+                .join(" | ")}
+            </em>
+          </div>
         </div>
-      </div>
+      )}
 
       <Dialog
         header={modalTitle}
